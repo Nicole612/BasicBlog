@@ -7,6 +7,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def index():
+    """Render the home page with a list of all blog posts."""
     with open("blog_posts.json") as f:
         blog_posts = json.load(f)
     return render_template("index.html", posts=blog_posts)
@@ -14,6 +15,7 @@ def index():
 
 @app.route('/add', methods=['GET', 'POST'])
 def add():
+    """Display the form to add a new blog post and handle form submission."""
     if request.method == 'POST':
         new_post = {
             "title": request.form["title"],
@@ -33,6 +35,7 @@ def add():
 
 @app.route('/delete/<int:post_id>')
 def delete(post_id):
+    """Delete the blog post with the given ID and redirect to the home page."""
     with open('blog_posts.json', 'r+') as f:
         posts = json.load(f)
         updated_posts = [p for p in posts if p['id'] != post_id]
@@ -43,6 +46,7 @@ def delete(post_id):
 
 
 def fetch_post_by_id(post_id):
+    """Return the blog post with the given ID from the JSON file """
     with open('blog_posts.json', 'r+') as f:
         posts = json.load(f)
         return next((p for p in posts if p['id'] == post_id), None)
@@ -50,6 +54,7 @@ def fetch_post_by_id(post_id):
 
 @app.route('/update/<int:post_id>', methods=['GET', 'POST'])
 def update(post_id):
+    """Display a form to update a blog post and handle the update submission."""
     post = fetch_post_by_id(post_id)
     if post is None:
         return f"Post not found", 404
