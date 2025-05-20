@@ -1,12 +1,74 @@
-from flask import Flask
+from flask import Flask, render_template, request, redirect, url_for
+import json
+
 
 app = Flask(__name__)
 
 
 @app.route('/')
-def hello_world():
-    return 'Hello, World!'
+def index():
+    with open("blog_posts.json") as f:
+        blog_posts = json.load(f)
+    return render_template("index.html", posts=blog_posts)
 
 
-if __name__ == '__main__':
+@app.route('/add', methods=['GET', 'POST'])
+def add():
+    if request.method == 'POST':
+        new_post = {
+            "title": request.form["title"],
+            "author": request.form["author"],
+            "content": request.form["content"]
+        }
+
+        with open('blog_posts.json', 'r+') as f:
+            posts = json.load(f)
+            new_post["id"] = max([p['id'] for p in posts], default=0) + 1
+            posts.append(new_post)
+            f.seek(0)
+            json.dump(posts, f, indent=2)
+        return redirect(url_for("index"))
+    return render_template('add.html')
+
+
+@app.route('/delete/<int:post_id>')
+def delete(post_id):
+    with open('blog_posts.json', 'r+') as f:
+        posts = json.load(f)
+        updated_posts = [p for p in posts if p['id'] != post_id]
+        f.seek(0)
+        f.truncate()
+        json.dump(updated_posts, f, indent=2)
+    return redirect(url_for('index'))
+
+
+def fetch_post_by_id(post_id):
+    with open('blog_posts.json', 'r+') as f:
+        posts = json.load(f)
+        return next((p for p in posts if p['id'] == post_id), None)
+
+
+@app.route('/update/<int:post_id>', methods=['GET', 'POST'])
+def update(post_id):
+    post = fetch_post_by_id(post_id)
+    if post is None:
+        return f"Post not found", 404
+    if request.method == 'POST':
+        with open('blog_posts.json', 'r+') as f:
+            posts = json.load(f)
+            for p in posts:
+                if p["id"] == post_id:
+                    post['title'] = request.form['title']
+                    post['author'] = request.form['author']
+                    post['content'] = request.form['content']
+                    break
+            f.seek(0)
+            f.truncate()
+            json.dump(posts, f, indent=2)
+        return redirect(url_for('index'))
+    return render_template('update.html', post=post)
+
+
+
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
