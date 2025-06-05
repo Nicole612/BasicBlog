@@ -33,15 +33,17 @@ def add():
     return render_template('add.html')
 
 
-@app.route('/delete/<int:post_id>')
+@app.route('/delete/<int:post_id>', methods=['POST'])
 def delete(post_id):
     """Delete the blog post with the given ID and redirect to the home page."""
-    with open('blog_posts.json', 'r+') as f:
+    with open('blog_posts.json', 'r') as f:
         posts = json.load(f)
-        updated_posts = [p for p in posts if p['id'] != post_id]
-        f.seek(0)
-        f.truncate()
+
+    updated_posts = [p for p in posts if p['id'] != post_id]
+
+    with open('blog_posts.json', 'w') as f:
         json.dump(updated_posts, f, indent=2)
+
     return redirect(url_for('index'))
 
 
@@ -55,22 +57,26 @@ def fetch_post_by_id(post_id):
 @app.route('/update/<int:post_id>', methods=['GET', 'POST'])
 def update(post_id):
     """Display a form to update a blog post and handle the update submission."""
-    post = fetch_post_by_id(post_id)
-    if post is None:
-        return f"Post not found", 404
+
     if request.method == 'POST':
         with open('blog_posts.json', 'r+') as f:
             posts = json.load(f)
             for p in posts:
                 if p["id"] == post_id:
-                    post['title'] = request.form['title']
-                    post['author'] = request.form['author']
-                    post['content'] = request.form['content']
+                    p['title'] = request.form['title']
+                    p['author'] = request.form['author']
+                    p['content'] = request.form['content']
                     break
             f.seek(0)
             f.truncate()
             json.dump(posts, f, indent=2)
         return redirect(url_for('index'))
+
+    post = fetch_post_by_id(post_id)
+
+    if post is None:
+        return f"Post not found", 404
+
     return render_template('update.html', post=post)
 
 
